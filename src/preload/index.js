@@ -29,6 +29,9 @@ contextBridge.exposeInMainWorld('api', {
   },
   donaciones: {
     listar: invocar(CANALES.DONACIONES_LISTAR),
+    obtener: invocar(CANALES.DONACIONES_OBTENER),
+    actualizar: invocar(CANALES.DONACIONES_ACTUALIZAR),
+    eliminar: invocar(CANALES.DONACIONES_ELIMINAR),
     exportarExcel: invocar(CANALES.DONACIONES_EXPORTAR_EXCEL)
   },
   auth: {

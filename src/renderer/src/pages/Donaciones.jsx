@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { formatearFechaHora, formatearNumero } from '../lib/util.js'
+import { formatearFecha, formatearFechaHora, formatearNumero } from '../lib/util.js'
 import Icon from '../components/Icon.jsx'
 import Toast from '../components/Toast.jsx'
 import SelectBuscador from '../components/SelectBuscador.jsx'
@@ -57,6 +57,50 @@ export default function Donaciones() {
   const [form, setForm] = useState(FORM_INICIAL)
   const [tabActivo, setTabActivo] = useState(0)
   const [toast, mostrarToast, cerrarToast] = useToast()
+  const [busqueda, setBusqueda] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
+
+  const filasFiltradas = useMemo(() => {
+    const termino = busqueda.trim().toLowerCase()
+    const desde = fechaDesde ? fechaDesde.slice(0, 10) : ''
+    const hasta = fechaHasta ? fechaHasta.slice(0, 10) : ''
+
+    return filas.filter((f) => {
+      if (desde || hasta) {
+        const fecha = String(f.fecha_movimiento || '').slice(0, 10)
+        if (desde && fecha < desde) return false
+        if (hasta && fecha > hasta) return false
+      }
+      if (!termino) return true
+
+      const campos = [
+        f.numero_kardex,
+        f.ano_donacion,
+        f.no_expediente,
+        f.nombre_razon_social,
+        f.codigo_producto,
+        f.descripcion_completa,
+        f.no_caso_ucni,
+        f.dictamen_tecnico,
+        f.no_ingreso_almacen,
+        f.no_acuerdo_ministerial,
+        f.numero_siges,
+        f.cur
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+      return campos.includes(termino)
+    })
+  }, [filas, busqueda, fechaDesde, fechaHasta])
+
+  const limpiarFiltros = () => {
+    setBusqueda('')
+    setFechaDesde('')
+    setFechaHasta('')
+  }
 
   const cargar = async () => {
     const [resDonaciones, resSuministros, resEntidades] = await Promise.all([
@@ -123,6 +167,45 @@ export default function Donaciones() {
         </button>
       </div>
 
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="form-control w-full max-w-xs">
+          <span className="label-text">Buscar</span>
+          <input
+            type="search"
+            className="input input-bordered input-sm"
+            placeholder="Expediente, ONG, producto, UCNI…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text">Desde</span>
+          <input
+            type="date"
+            className="input input-bordered input-sm w-40"
+            value={fechaDesde}
+            onChange={(e) => setFechaDesde(e.target.value)}
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text">Hasta</span>
+          <input
+            type="date"
+            className="input input-bordered input-sm w-40"
+            value={fechaHasta}
+            onChange={(e) => setFechaHasta(e.target.value)}
+          />
+        </label>
+        {(busqueda || fechaDesde || fechaHasta) && (
+          <button type="button" className="btn btn-ghost btn-sm" onClick={limpiarFiltros}>
+            Limpiar
+          </button>
+        )}
+        <span className="text-sm opacity-60 pb-1">
+          {filasFiltradas.length} de {filas.length} expediente(s)
+        </span>
+      </div>
+
       <div className="rounded-box bg-base-100 shadow-sm">
         <div className="p-4">
           {cargando ? (
@@ -135,6 +218,7 @@ export default function Donaciones() {
                 <thead className="sticky top-0 bg-base-200">
                   <tr>
                     <th>No.</th>
+                    <th>Fecha</th>
                     <th>Año</th>
                     <th>No. Expediente</th>
                     <th>ONG Donante</th>
@@ -147,16 +231,17 @@ export default function Donaciones() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filas.length === 0 && (
+                  {filasFiltradas.length === 0 && (
                     <tr>
-                      <td colSpan={10} className="text-center opacity-60 py-8">
+                      <td colSpan={11} className="text-center opacity-60 py-8">
                         Sin expedientes de donación.
                       </td>
                     </tr>
                   )}
-                  {filas.map((f) => (
+                  {filasFiltradas.map((f) => (
                     <tr key={f.id_expediente}>
                       <td className="font-mono text-xs opacity-70">{f.numero_kardex}</td>
+                      <td className="whitespace-nowrap">{formatearFecha(f.fecha_movimiento)}</td>
                       <td>{f.ano_donacion || '—'}</td>
                       <td className="font-mono">{f.no_expediente || '—'}</td>
                       <td>{f.nombre_razon_social}</td>
@@ -387,3 +472,4 @@ export default function Donaciones() {
     </div>
   )
 }
+

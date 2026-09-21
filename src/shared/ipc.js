@@ -19,6 +19,7 @@ export const CANALES = {
   KARDEX_REGISTRAR_REAJUSTE: 'kardex:registrar-reajuste',
 
   DONACIONES_LISTAR: 'donaciones:listar',
+  DONACIONES_EXPORTAR_EXCEL: 'donaciones:exportar-excel',
 
   BACKUP_GUARDAR: 'backup:guardar',
 

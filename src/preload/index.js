@@ -28,7 +28,8 @@ contextBridge.exposeInMainWorld('api', {
     registrarReajuste: invocar(CANALES.KARDEX_REGISTRAR_REAJUSTE)
   },
   donaciones: {
-    listar: invocar(CANALES.DONACIONES_LISTAR)
+    listar: invocar(CANALES.DONACIONES_LISTAR),
+    exportarExcel: invocar(CANALES.DONACIONES_EXPORTAR_EXCEL)
   },
   auth: {
     login: invocar(CANALES.AUTH_LOGIN),

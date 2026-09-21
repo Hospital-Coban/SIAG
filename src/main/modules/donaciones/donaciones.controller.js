@@ -15,6 +15,30 @@ export function registrarDonacionesIpc(db) {
     }
   })
 
+  ipcMain.handle(CANALES.DONACIONES_OBTENER, async (_event, id) => {
+    try {
+      return { ok: true, data: service.obtener(id) }
+    } catch (err) {
+      return { ok: false, error: mensajeErrorSql(err, 'Ver expediente de donación') }
+    }
+  })
+
+  ipcMain.handle(CANALES.DONACIONES_ACTUALIZAR, async (_event, id, datos) => {
+    try {
+      return { ok: true, data: service.actualizar(id, datos) }
+    } catch (err) {
+      return { ok: false, error: mensajeErrorSql(err, 'Actualizar expediente de donación') }
+    }
+  })
+
+  ipcMain.handle(CANALES.DONACIONES_ELIMINAR, async (_event, id) => {
+    try {
+      return { ok: true, data: service.eliminar(id) }
+    } catch (err) {
+      return { ok: false, error: mensajeErrorSql(err, 'Eliminar expediente de donación') }
+    }
+  })
+
   ipcMain.handle(CANALES.DONACIONES_EXPORTAR_EXCEL, async (event, buffer, nombreBase) => {
     try {
       const ventana = BrowserWindow.fromWebContents(event.sender)

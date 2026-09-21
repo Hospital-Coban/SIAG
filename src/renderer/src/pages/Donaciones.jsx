@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import * as XLSX from 'xlsx'
 import { formatearFecha, formatearFechaHora, formatearNumero } from '../lib/util.js'
 import Icon from '../components/Icon.jsx'
 import Toast from '../components/Toast.jsx'
@@ -47,6 +48,37 @@ const TABS = [
   'Acuerdos y Financiero'
 ]
 
+const EXPORTAR_COLUMNAS = [
+  'No.',
+  'AÑO DE LA DONACIÓN',
+  'No. DE EXPEDIENTE',
+  'ONG DONANTE',
+  'TIPO DE DONACIÓN',
+  'DESCRIPCIÓN DE LA DONACIÓN',
+  'CANTIDAD',
+  'VALOR UNITARIO EN Q',
+  'MONTO TOTAL EN Q',
+  'No. DE CASO EN UNIDAD DE COOPERACIÓN NACIONAL E INTERNACIONAL (UCNI)',
+  'NÚMERO DE SIAD',
+  'NOMBRE DEL LICENCIADO (A) QUE LLEVA EL CASO EN UCNI',
+  'No. DE CARTA DE INTENCIÓN DE DONACIÓN',
+  'FECHA DE LA CARTA DE INTENCIÓN DE DONACIÓN',
+  'DICTAMEN TÉCNICO NÚMERO',
+  'FECHA DEL DICTAMEN TÉCNICO',
+  'NÚMERO DE LA CARTA DE AGRADECIMIENTO DEL MINISTRO',
+  'FECHA DE LA CARTA DE AGRADECIMIENTO DEL MINISTRO',
+  'No. DE ACTA ADMINISTRATIVA',
+  'FECHA DE SUSCRIPCIÓN DEL ACTA',
+  'No. DE INGRESO A ALMACÉN 1-H',
+  'ANEXO UTILIZADO',
+  'No. DE OFICIO DE ENTREGA DEL EXPEDIENTE DE DONACIÓN',
+  'No. DE ACUERDO MINISTERIAL',
+  'FECHA DE APROBACIÓN DEL ACUERDO MINISTERIAL',
+  'CODIGO SIGES',
+  'CODIGO SICOIN',
+  'CODIGO ÚNICO DE REGISTRO (CUR)'
+]
+
 export default function Donaciones() {
   const [filas, setFilas] = useState([])
   const [suministros, setSuministros] = useState([])
@@ -60,6 +92,65 @@ export default function Donaciones() {
   const [busqueda, setBusqueda] = useState('')
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
+  const [exportando, setExportando] = useState(false)
+
+  const exportarExcel = async () => {
+    if (filasFiltradas.length === 0) {
+      mostrarToast('No hay expedientes que exportar', 'error')
+      return
+    }
+
+    setExportando(true)
+    try {
+      const filas = filasFiltradas.map((f, i) => [
+        i + 1,
+        f.ano_donacion || '',
+        f.no_expediente || '',
+        f.nombre_razon_social || '',
+        f.tipo_donacion || '',
+        f.descripcion_completa || '',
+        f.cantidad,
+        f.precio_unitario,
+        f.cantidad * (f.precio_unitario || 0),
+        f.no_caso_ucni || '',
+        f.numero_siges || '',
+        f.nombre_licenciado_ucni || '',
+        f.no_carta_intencion || '',
+        f.fecha_carta_intencion ? formatearFecha(f.fecha_carta_intencion) : '',
+        f.dictamen_tecnico || '',
+        f.fecha_dictamen_tecnico ? formatearFecha(f.fecha_dictamen_tecnico) : '',
+        f.no_carta_agradecimiento || '',
+        f.fecha_carta_agradecimiento ? formatearFecha(f.fecha_carta_agradecimiento) : '',
+        f.no_acta_administrativa || '',
+        f.fecha_suscripcion_acta ? formatearFecha(f.fecha_suscripcion_acta) : '',
+        f.no_ingreso_almacen || '',
+        f.anexo_utilizado || '',
+        f.no_oficio_entrega || '',
+        f.no_acuerdo_ministerial || '',
+        f.fecha_aprobacion_acuerdo ? formatearFecha(f.fecha_aprobacion_acuerdo) : '',
+        f.codigo_siges || '',
+        f.codigo_sicoin || '',
+        f.cur || ''
+      ])
+
+      const hoja = XLSX.utils.aoa_to_sheet([EXPORTAR_COLUMNAS, ...filas])
+      hoja['!cols'] = EXPORTAR_COLUMNAS.map((c) => ({ wch: Math.min(Math.max(c.length + 2, 14), 50) }))
+      const libro = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(libro, hoja, 'Donaciones')
+      const buffer = XLSX.write(libro, { bookType: 'xlsx', type: 'array' })
+
+      const fecha = new Date().toISOString().slice(0, 10)
+      const res = await window.api.donaciones.exportarExcel(buffer, `donaciones_${fecha}.xlsx`)
+      if (!res.ok) {
+        mostrarToast(res.error, 'error')
+        return
+      }
+      if (res.data?.cancelado) return
+      mostrarToast(`Exportado: ${res.data.ruta}`)
+    } finally {
+      setExportando(false)
+    }
+  }
 
   const filasFiltradas = useMemo(() => {
     const termino = busqueda.trim().toLowerCase()
@@ -161,10 +252,20 @@ export default function Donaciones() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Expedientes de donación</h1>
-        <button className="btn btn-primary" onClick={() => setModalAbierto(true)}>
-          <Icon name="donaciones" className="h-4 w-4" />
-          Registrar donación
-        </button>
+        <div className="flex gap-2">
+          <button className="btn btn-success btn-outline" onClick={exportarExcel} disabled={exportando}>
+            {exportando ? (
+              <span className="loading loading-spinner loading-sm" />
+            ) : (
+              <Icon name="descargar" className="h-4 w-4" />
+            )}
+            Exportar Excel
+          </button>
+          <button className="btn btn-primary" onClick={() => setModalAbierto(true)}>
+            <Icon name="donaciones" className="h-4 w-4" />
+            Registrar donación
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3">

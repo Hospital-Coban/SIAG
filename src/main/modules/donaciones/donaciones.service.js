@@ -12,6 +12,7 @@ export class DonacionesService {
            t.numero_kardex,
            t.fecha_movimiento,
            t.cantidad,
+           l.precio_unitario,
            s.codigo_producto,
            s.descripcion_completa,
            ent.nombre_razon_social

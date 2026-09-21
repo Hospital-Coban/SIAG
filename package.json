@@ -16,7 +16,8 @@
     "build:linux": "electron-vite build && electron-builder --linux"
   },
   "dependencies": {
-    "better-sqlite3": "^11.5.0"
+    "better-sqlite3": "^11.5.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",

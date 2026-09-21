@@ -22,6 +22,14 @@ function crearVentana() {
 
   ventana.on('ready-to-show', () => ventana.show())
 
+  ventana.webContents.on('console-message', (_event, nivel, mensaje, linea, fuente) => {
+    console.log(`[renderer:${nivel}] ${mensaje} (${fuente}:${linea})`)
+  })
+
+  ventana.webContents.on('did-fail-load', (_event, codigo, descripcion, url) => {
+    console.error(`[renderer] fallo al cargar ${url}: ${codigo} ${descripcion}`)
+  })
+
   ventana.webContents.setWindowOpenHandler((detalles) => {
     shell.openExternal(detalles.url)
     return { action: 'deny' }

@@ -121,17 +121,17 @@ export default function Donaciones() {
   return <div className="space-y-6">
     <div className="flex flex-wrap justify-between gap-3">
       <h1 className="text-2xl font-bold">Expedientes de donación</h1>
-      <div className="flex gap-2">
-        <button className="btn btn-outline btn-secondary" disabled={ocupado || !filtradas.length} onClick={exportar}>Exportar Excel</button>
-        <button className="btn btn-outline btn-primary" onClick={() => setForm(inicial())}>Registrar donación</button>
+      <div className="grid w-full gap-2 sm:flex sm:w-auto">
+        <button className="btn btn-outline btn-secondary w-full sm:w-auto" disabled={ocupado || !filtradas.length} onClick={exportar}>Exportar Excel</button>
+        <button className="btn btn-outline btn-primary w-full sm:w-auto" onClick={() => setForm(inicial())}>Registrar donación</button>
       </div>
     </div>
-    <div className="flex flex-wrap items-end gap-3">
-      <label className="form-control"><span className="label-text">Buscar</span><input className="input input-bordered input-sm" type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Expediente, descripción, UCNI…" /></label>
+    <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <label className="form-control min-w-0"><span className="label-text">Buscar</span><input className="input input-bordered input-sm w-full" type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Expediente, descripción, UCNI…" /></label>
       <div className="form-control w-full sm:w-64"><span className="label-text">Donante</span><SelectBuscador size="sm" opciones={opcionesDonantes} valor={donante} onChange={setDonante} placeholder="Todos los donantes" /></div>
-      <label className="form-control"><span className="label-text">Entrega desde</span><input className="input input-bordered input-sm" type="date" value={desde} max={hasta || undefined} onChange={(e) => setDesde(e.target.value)} /></label>
-      <label className="form-control"><span className="label-text">Entrega hasta</span><input className="input input-bordered input-sm" type="date" value={hasta} min={desde || undefined} onChange={(e) => setHasta(e.target.value)} /></label>
-      <button className="btn btn-ghost btn-sm" onClick={() => { setBusqueda(''); setDonante(''); setDesde(''); setHasta('') }}>Limpiar filtros</button>
+      <label className="form-control min-w-0"><span className="label-text">Entrega desde</span><input className="input input-bordered input-sm w-full" type="date" value={desde} max={hasta || undefined} onChange={(e) => setDesde(e.target.value)} /></label>
+      <label className="form-control min-w-0"><span className="label-text">Entrega hasta</span><input className="input input-bordered input-sm w-full" type="date" value={hasta} min={desde || undefined} onChange={(e) => setHasta(e.target.value)} /></label>
+      <button className="btn btn-ghost btn-sm w-full lg:w-auto" onClick={() => { setBusqueda(''); setDonante(''); setDesde(''); setHasta('') }}>Limpiar filtros</button>
       <span className="text-sm opacity-60">{filtradas.length} de {filas.length} donaciones</span>
     </div>
     <div className="rounded-box bg-base-100 p-4 shadow-sm overflow-auto">
@@ -143,10 +143,10 @@ export default function Donaciones() {
         </tr>)}</tbody>
       </table>}
     </div>
-    {form && <Modal><div className="modal-box max-w-5xl max-h-[90vh]">
+    {form && <Modal><div className="modal-box w-full max-w-5xl max-h-[90vh] overflow-y-auto">
       <h3 className="text-lg font-bold mb-4">{form.id_expediente ? 'Editar' : 'Registrar'} donación</h3>
       <form onSubmit={guardar}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {CAMPOS_DONACION.map(([k, etiqueta, tipo]) => <div className="form-control" key={k}>
             <label className="label-text mb-1" htmlFor={`donacion-${k}`}>{etiqueta}{['nombre_ong', 'descripcion_completa', 'cantidad', 'precio_unitario'].includes(k) ? ' *' : ''}</label>
             {tipo === 'donante' ? <>
@@ -157,7 +157,7 @@ export default function Donaciones() {
               <input id={`donacion-${k}`} className="input input-bordered w-full" type={tipo === 'date' ? 'date' : ['number', 'money', 'total'].includes(tipo) ? 'number' : 'text'} step={tipo === 'money' || tipo === 'total' ? '0.01' : undefined} min={k === 'cantidad' ? 1 : ['money', 'total', 'number'].includes(tipo) ? 0 : undefined} required={['descripcion_completa', 'cantidad', 'precio_unitario'].includes(k)} readOnly={tipo === 'total'} value={tipo === 'total' ? total(form).toFixed(2) : form[k] ?? ''} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} />}
           </div>)}
         </div>
-        <div className="modal-action"><button className="btn btn-outline btn-neutral" type="button" disabled={ocupado} onClick={() => setForm(null)}>Cancelar</button><button className="btn btn-outline btn-primary" disabled={ocupado}>Guardar donación</button></div>
+         <div className="modal-action flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button className="btn btn-outline btn-neutral w-full sm:w-auto" type="button" disabled={ocupado} onClick={() => setForm(null)}>Cancelar</button><button className="btn btn-outline btn-primary w-full sm:w-auto" disabled={ocupado}>Guardar donación</button></div>
       </form>
     </div></Modal>}
     {detalle && <Modal><div className="modal-box max-w-3xl"><h3 className="text-lg font-bold">Detalle de la donación</h3><table className="table table-sm"><tbody>{CAMPOS_DONACION.map(([k, etiqueta, tipo]) => <tr key={k}><td className="opacity-60">{etiqueta}</td><td>{valor(detalle, k, tipo) || '—'}</td></tr>)}</tbody></table><div className="modal-action"><button className="btn" onClick={() => setDetalle(null)}>Cerrar</button></div></div></Modal>}

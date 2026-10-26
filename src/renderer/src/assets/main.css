@@ -1,23 +1,76 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+@import "tailwindcss";
+@source "../../**/*.{js,jsx}";
+@plugin "daisyui";
+@plugin "daisyui/theme" {
+  name: "light";
+  default: true;
+  --color-primary: #2563EB;
+  --color-primary-content: #FFFFFF;
+  --color-secondary: #DBEAFE;
+  --color-secondary-content: #1D4ED8;
+  --color-accent: #1D4ED8;
+  --color-accent-content: #FFFFFF;
+  --color-neutral: #64748B;
+  --color-neutral-content: #FFFFFF;
+  --color-info: #0284C7;
+  --color-info-content: #FFFFFF;
+  --color-success: #15803D;
+  --color-success-content: #FFFFFF;
+  --color-warning: #D97706;
+  --color-warning-content: #FFFFFF;
+  --color-error: #DC2626;
+  --color-error-content: #FFFFFF;
+  --color-base-100: #FFFFFF;
+  --color-base-200: #EFF6FF;
+  --color-base-300: #F8FAFC;
+  --color-base-content: #0F172A;
+}
+@plugin "daisyui/theme" {
+  name: "dark";
+  prefersdark: true;
+  --color-primary: #60A5FA;
+  --color-primary-content: #0B1120;
+  --color-secondary: #1E40AF;
+  --color-secondary-content: #EFF6FF;
+  --color-accent: #93C5FD;
+  --color-accent-content: #0B1120;
+  --color-neutral: #94A3B8;
+  --color-neutral-content: #0B1120;
+  --color-info: #38BDF8;
+  --color-info-content: #082F49;
+  --color-success: #22C55E;
+  --color-success-content: #052E16;
+  --color-warning: #F59E0B;
+  --color-warning-content: #451A03;
+  --color-error: #F87171;
+  --color-error-content: #450A0A;
+  --color-base-100: #1E293B;
+  --color-base-200: #111827;
+  --color-base-300: #0B1120;
+  --color-base-content: #F8FAFC;
+}
 @layer base {
+
+  [data-theme='light'] html,
   [data-theme='light'] body {
     background-color: #f8fafc;
   }
+
+  [data-theme='dark'] html,
   [data-theme='dark'] body {
     background-color: #0b1120;
+  }
+
+  html:has(dialog.modal.modal-open) {
+    overflow: hidden;
+    scrollbar-gutter: auto;
   }
 }
 
 @layer components {
-  [data-theme='light'] .btn-primary:hover {
-    background-color: #1d4ed8;
-    border-color: #1d4ed8;
-  }
-  [data-theme='dark'] .btn-primary:hover {
-    background-color: #60a5fa;
-    border-color: #60a5fa;
+  /* Lenguaje visual único: acciones de contorno con color semántico. */
+  .btn:not(.btn-outline):not(.btn-link) {
+    @apply btn-outline;
   }
 }
+

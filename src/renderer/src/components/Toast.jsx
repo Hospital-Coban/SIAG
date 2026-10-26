@@ -9,11 +9,10 @@ export default function Toast({ mensaje, tipo, onCerrar }) {
     <div className="toast toast-end toast-bottom z-50">
       <div className={`alert ${tipo === 'error' ? 'alert-error' : 'alert-success'}`}>
         <span>{texto}</span>
-        <button className="btn btn-ghost btn-xs" onClick={onCerrar}>
+        <button className="btn btn-soft btn-neutral btn-xs" onClick={onCerrar}>
           Cerrar
         </button>
       </div>
     </div>
   )
 }
-

@@ -6,6 +6,20 @@ import { DonacionesService } from './donaciones.service.js'
 
 export function registrarDonacionesIpc(db) {
   const service = new DonacionesService(db)
+  ipcMain.handle(CANALES.DONACIONES_ONG_LISTAR, async () => {
+    try {
+      return { ok: true, data: service.listarOng() }
+    } catch (err) {
+      return { ok: false, error: mensajeErrorSql(err, 'Listar ONG donantes') }
+    }
+  })
+  ipcMain.handle(CANALES.DONACIONES_CREAR, async (_event, datos) => {
+    try {
+      return { ok: true, data: service.crear(datos) }
+    } catch (err) {
+      return { ok: false, error: mensajeErrorSql(err, 'Registrar donación') }
+    }
+  })
 
   ipcMain.handle(CANALES.DONACIONES_LISTAR, async () => {
     try {

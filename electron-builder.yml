@@ -1,5 +1,5 @@
 appId: com.hospital.inventario
-productName: Inventario Hospitalario
+productName: SIAG Almacén
 directories:
   buildResources: resources
   output: dist
@@ -17,7 +17,7 @@ win:
   target:
     - nsis
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: SIAG-Almacen-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -28,3 +28,7 @@ linux:
     - AppImage
   category: Utility
 npmRebuild: true
+publish:
+  provider: github
+  owner: Hospital-Coban
+  repo: SIAG

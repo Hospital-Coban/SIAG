@@ -2,9 +2,28 @@ import { ipcMain } from 'electron'
 import { CANALES } from '../../../shared/ipc.js'
 import { mensajeErrorSql } from '../../utils/errores.js'
 import { KardexService } from './kardex.service.js'
+import { DocumentosService } from './documentos.service.js'
 
 export function registrarKardexIpc(db) {
   const service = new KardexService(db)
+  const documentos = new DocumentosService(db)
+  ipcMain.handle(CANALES.INVENTARIO_DOCUMENTOS, async (_event, accion, datos) => {
+    try {
+      let data
+      if (accion === 'catalogos') data = documentos.catalogos()
+      else if (accion === 'crearCatalogo') data = documentos.crearCatalogo(datos.tipo, datos)
+      else if (accion === 'previsualizar') data = documentos.previsualizar(datos)
+      else if (accion === 'guardar') data = documentos.guardar(datos)
+      else if (accion === 'reajustar') data = documentos.reajustar(datos)
+      else if (accion === 'reporte') data = documentos.reporte()
+      else if (accion === 'tarjeta') data = documentos.tarjeta(datos.id_suministro)
+      else if (accion === 'configurar') data = documentos.configurar(datos)
+      else throw new Error('Operación de inventario no válida.')
+      return { ok: true, data }
+    } catch (err) {
+      return { ok: false, error: mensajeErrorSql(err, 'Documento de inventario') }
+    }
+  })
 
   ipcMain.handle(CANALES.KARDEX_LISTAR, async (_event, filtros) => {
     try {

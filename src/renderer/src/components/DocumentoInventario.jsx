@@ -66,7 +66,7 @@ export default function DocumentoInventario({ tipo, onCerrar, onGuardado }) {
     setNuevo((n) => ({ ...n, [key]: v, ...(existente ? { nombre: existente.nombre } : {}) }))
   }} /></label>
   return <>
-    <Modal><div className="modal-box max-w-7xl max-h-[94vh]">
+    <Modal><div className="modal-box w-full max-w-7xl max-h-[94vh] overflow-y-auto">
       <h3 className="text-xl font-bold">{salida ? 'Nueva entrega a distrito / destino' : inicial ? 'Carga de inventario inicial' : 'Nueva entrada de suministros'}</h3>
       <p className="text-sm opacity-60 mt-1">Un documento, varios productos. Las cantidades y costos corresponden a la presentación seleccionada.</p>
       {error && <div role="alert" className="alert alert-error mt-3">{error}</div>}
@@ -108,7 +108,7 @@ export default function DocumentoInventario({ tipo, onCerrar, onGuardado }) {
         <button className="btn btn-outline btn-sm" type="button" disabled={ocupado} onClick={() => cambiar('lineas', [...form.lineas, nuevaLinea()])}>+ Agregar producto</button>
         {!salida && <p className="text-right font-bold">Total del documento: Q {formatearNumero(form.lineas.reduce((a, l) => a + Number(l.cantidad || 0) * Number(l.precio_unitario || 0), 0))}</p>}
         {plan && <div className="rounded-lg border border-info p-4"><h4 className="font-bold mb-2">Revisar lotes antes de confirmar</h4>{plan.map((p, i) => <div key={i} className="text-sm mb-2"><strong>{p.suministro.descripcion_completa} · {p.suministro.cantidad_unitaria}</strong>{p.lotes.map((l) => <p key={l.id_lote}>Lote {l.numero_lote} · vence {l.fecha_vencimiento}: entregar {l.cantidad}</p>)}</div>)}<p className="text-xs opacity-70">La disponibilidad se vuelve a comprobar al confirmar.</p></div>}
-        <div className="modal-action sticky bottom-0 bg-base-100 py-3"><button className="btn btn-ghost" type="button" disabled={ocupado} onClick={onCerrar}>Cancelar</button><button className="btn btn-primary" disabled={ocupado}>{ocupado ? 'Procesando…' : salida ? plan ? 'Confirmar entrega completa' : 'Revisar lotes de salida' : 'Guardar entrada completa'}</button></div>
+        <div className="modal-action sticky bottom-0 flex-col-reverse gap-2 bg-base-100 py-3 sm:flex-row sm:justify-end"><button className="btn btn-ghost w-full sm:w-auto" type="button" disabled={ocupado} onClick={onCerrar}>Cancelar</button><button className="btn btn-primary w-full sm:w-auto" disabled={ocupado}>{ocupado ? 'Procesando…' : salida ? plan ? 'Confirmar entrega completa' : 'Revisar lotes de salida' : 'Guardar entrada completa'}</button></div>
       </form>}
     </div></Modal>
     {creando && <Modal><div className="modal-box max-w-2xl"><h3 className="text-lg font-bold">{creando.tipo === 'presentacion' ? nuevo.id_suministro ? 'Completar datos de la presentación' : 'Crear producto / presentación' : creando.tipo === 'proveedor' ? 'Nuevo proveedor / remitente' : creando.tipo === 'destino' ? 'Nuevo destino' : 'Nueva modalidad'}</h3>

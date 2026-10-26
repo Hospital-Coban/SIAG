@@ -28,6 +28,15 @@ export function estadoActualizacion() {
 function configurar() {
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
+  const token = 'PEGA_AQUI_EL_TOKEN_DE_GITHUB'
+  if (token && !token.startsWith('PEGA_AQUI_')) {
+    autoUpdater.requestHeaders = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json'
+    }
+  } else {
+    autoUpdater.requestHeaders = {}
+  }
 
   autoUpdater.on('checking-for-update', () => {
     mover({ estado: 'buscando', error: null, progreso: null })

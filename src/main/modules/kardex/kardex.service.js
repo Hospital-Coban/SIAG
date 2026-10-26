@@ -11,11 +11,19 @@ export class KardexService {
     let sql = `
       SELECT
         t.id_transaccion,
+        t.id_lote,
         t.numero_kardex,
         t.fecha_movimiento,
         t.tipo_movimiento,
         t.cantidad,
         t.documento_referencia,
+        t.destino,
+        t.id_documento,
+        t.observaciones,
+        d.numero AS numero_documento,
+        d.observaciones AS observaciones_documento,
+        l.precio_unitario,
+        s.cantidad_unitaria,
         s.codigo_producto,
         s.descripcion_completa,
         l.numero_lote,
@@ -26,6 +34,7 @@ export class KardexService {
       JOIN inventario_lotes l ON l.id_lote = t.id_lote
       JOIN cat_suministros s ON s.id_suministro = l.id_suministro
       LEFT JOIN cat_entidades e ON e.id_entidad = t.id_entidad
+      LEFT JOIN inventario_documentos d ON d.id_documento = t.id_documento
     `
     const where = []
     const params = []
@@ -43,25 +52,6 @@ export class KardexService {
     return this.db.prepare(sql).all(...params)
   }
 
-  // Saldo disponible por lote de un suministro, ordenado PEPS (más próximo a vencer).
-  _lotesDisponibles(id_suministro) {
-    return this.db
-      .prepare(
-        `SELECT
-           l.id_lote,
-           l.numero_lote,
-           l.fecha_vencimiento,
-           COALESCE(SUM(t.cantidad), 0) AS saldo
-         FROM inventario_lotes l
-         LEFT JOIN transacciones_kardex t ON t.id_lote = l.id_lote
-         WHERE l.id_suministro = ?
-         GROUP BY l.id_lote
-         HAVING saldo > 0
-         ORDER BY l.fecha_vencimiento ASC, l.id_lote ASC`
-      )
-      .all(id_suministro)
-  }
-
   _generarNumeroKardex() {
     const { n } = this.db
       .prepare('SELECT COUNT(*) AS n FROM transacciones_kardex')
@@ -69,8 +59,31 @@ export class KardexService {
     return `K-${String(n + 1).padStart(4, '0')}`
   }
 
+  // Una salida es ahora UNA sola fila (por el lote elegido), así que en la práctica
+  // "un número por movimiento". No se agrega UNIQUE en la BD porque una base ya
+  // usada con salidas PEPS antiguas podría contener números repetidos y fallaría
+  // la migración; la unicidad se valida aquí y en el cliente.
+  _assertKardexLibre(numero) {
+    if (!numero) return
+    const existe = this.db
+      .prepare('SELECT 1 FROM transacciones_kardex WHERE numero_kardex = ? LIMIT 1')
+      .get(numero)
+    if (existe) {
+      throw new Error(`El número de kardex ${numero} ya está registrado.`)
+    }
+  }
+
+  // El destino viene como FK del catálogo; el nombre se desnormaliza en la
+  // transacción para que los reportes que leen `destino` sigan funcionando.
+  _resolverDestino(id_destino) {
+    const destino = this.db
+      .prepare('SELECT id_destino, nombre_destino FROM cat_destinos WHERE id_destino = ?')
+      .get(Number(id_destino))
+    if (!destino) throw new Error('El destino seleccionado no existe en el catálogo.')
+    return destino
+  }
+
   // Entrada (Compra o Donación): crea un lote y su transacción positiva.
-  // Si es Donación, además registra el expediente UCNI (1:1 con la transacción).
   registrarEntrada(datos = {}) {
     const id_suministro = requerido(datos.id_suministro, 'Suministro')
     const numero_lote = requerido(datos.numero_lote, 'Número de lote')
@@ -90,14 +103,8 @@ export class KardexService {
       throw new Error(`Tipo de movimiento no válido para una entrada: ${tipo}.`)
     }
 
-    let exp = null
-    if (tipo === 'Entrada_Donacion') {
-      exp = datos.expediente || {}
-      // Puedes hacer requerido alguno si es estrictamente necesario, ej:
-      // requerido(exp.no_expediente, 'Número de expediente')
-    }
-
     const numero_kardex = datos.numero_kardex || this._generarNumeroKardex()
+    if (datos.numero_kardex) this._assertKardexLibre(String(datos.numero_kardex).trim())
 
     const tx = this.db.transaction(() => {
       const infoLote = this.db
@@ -123,49 +130,6 @@ export class KardexService {
           datos.documento_referencia || null
         )
 
-      if (tipo === 'Entrada_Donacion') {
-        this.db
-          .prepare(
-            `INSERT INTO expedientes_donacion (
-               id_transaccion, ano_donacion, no_expediente, tipo_donacion,
-               no_caso_ucni, numero_siges, nombre_licenciado_ucni, no_carta_intencion, fecha_carta_intencion,
-               dictamen_tecnico, fecha_dictamen_tecnico, no_carta_agradecimiento, fecha_carta_agradecimiento,
-               no_acta_administrativa, fecha_suscripcion_acta, no_ingreso_almacen, anexo_utilizado,
-               no_oficio_entrega, no_acuerdo_ministerial, fecha_aprobacion_acuerdo, codigo_siges,
-               codigo_sicoin, cur, no_expediente_ucni, codigos_presupuestarios
-             ) VALUES (
-               ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-             )`
-          )
-          .run(
-            infoKardex.lastInsertRowid,
-            exp.ano_donacion || null,
-            exp.no_expediente || null,
-            exp.tipo_donacion || null,
-            exp.no_caso_ucni || null,
-            exp.numero_siges || null,
-            exp.nombre_licenciado_ucni || null,
-            exp.no_carta_intencion || null,
-            exp.fecha_carta_intencion || null,
-            exp.dictamen_tecnico || null,
-            exp.fecha_dictamen_tecnico || null,
-            exp.no_carta_agradecimiento || null,
-            exp.fecha_carta_agradecimiento || null,
-            exp.no_acta_administrativa || null,
-            exp.fecha_suscripcion_acta || null,
-            exp.no_ingreso_almacen || null,
-            exp.anexo_utilizado || null,
-            exp.no_oficio_entrega || null,
-            exp.no_acuerdo_ministerial || null,
-            exp.fecha_aprobacion_acuerdo || null,
-            exp.codigo_siges || null,
-            exp.codigo_sicoin || null,
-            exp.cur || null,
-            exp.no_expediente_ucni || null,
-            exp.codigos_presupuestarios || null
-          )
-      }
-
       return infoKardex.lastInsertRowid
     })
 
@@ -173,10 +137,12 @@ export class KardexService {
     return this._porId(id_transaccion)
   }
 
-  // Salida PEPS: descuenta del lote más próximo a vencer.
-  // Genera una transacción negativa por cada lote afectado (mismo número de kardex).
+  // Salida por lote: se descuenta del lote que el usuario elige, no
+  // automáticamente. El lote es obligatorio para que el descargo pueda
+  // identificar de qué lote salió cada unidad.
   registrarSalida(datos = {}) {
     const id_suministro = Number(requerido(datos.id_suministro, 'Suministro'))
+    const id_lote = Number(requerido(datos.id_lote, 'Lote'))
     const id_entidad = Number(requerido(datos.id_entidad, 'Entidad'))
     const cantidad = Number(datos.cantidad)
 
@@ -184,35 +150,56 @@ export class KardexService {
       throw new Error('La cantidad de salida debe ser un entero positivo.')
     }
 
-    const lotes = this._lotesDisponibles(id_suministro)
-    const total = lotes.reduce((acc, l) => acc + l.saldo, 0)
-    if (total < cantidad) {
+    const lote = this._loteConSaldo(id_lote, id_suministro)
+    if (!lote) {
+      throw new Error('El lote no existe o no tiene existencias disponibles.')
+    }
+    if (lote.saldo < cantidad) {
       throw new Error(
-        `Stock insuficiente: hay ${total} unidad(es) disponible(s) y se solicitan ${cantidad}.`
+        `Stock insuficiente en el lote ${lote.numero_lote}: hay ${lote.saldo} unidad(es) y se solicitan ${cantidad}.`
       )
     }
 
     const numero_kardex = datos.numero_kardex || this._generarNumeroKardex()
+    if (datos.numero_kardex) this._assertKardexLibre(String(datos.numero_kardex).trim())
 
-    const insert = this.db.prepare(
-      `INSERT INTO transacciones_kardex
-         (numero_kardex, id_entidad, id_lote, tipo_movimiento, cantidad, documento_referencia)
-       VALUES (?, ?, ?, 'Salida', ?, ?)`
-    )
+    const destino = datos.id_destino ? this._resolverDestino(datos.id_destino) : null
 
-    const tx = this.db.transaction(() => {
-      let restante = cantidad
-      for (const lote of lotes) {
-        if (restante <= 0) break
-        const aDescontar = Math.min(lote.saldo, restante)
-        insert.run(numero_kardex, id_entidad, lote.id_lote, -aDescontar, datos.documento_referencia || null)
-        restante -= aDescontar
-      }
-      return numero_kardex
-    })
+    const info = this.db
+      .prepare(
+        `INSERT INTO transacciones_kardex
+           (numero_kardex, id_entidad, id_lote, tipo_movimiento, cantidad, documento_referencia, id_destino, destino)
+         VALUES (?, ?, ?, 'Salida', ?, ?, ?, ?)`
+      )
+      .run(
+        numero_kardex,
+        id_entidad,
+        lote.id_lote,
+        -cantidad,
+        datos.documento_referencia || null,
+        destino?.id_destino ?? null,
+        destino?.nombre_destino ?? null
+      )
 
-    const numero = tx()
-    return { numero_kardex: numero, lotes_afectados: lotes.filter((_, i) => i < lotes.length).length }
+    return this._porId(info.lastInsertRowid)
+  }
+
+  _loteConSaldo(id_lote, id_suministro) {
+    return this.db
+      .prepare(
+        `SELECT
+           l.id_lote,
+           l.numero_lote,
+           l.fecha_vencimiento,
+           l.precio_unitario,
+           COALESCE(SUM(t.cantidad), 0) AS saldo
+         FROM inventario_lotes l
+         LEFT JOIN transacciones_kardex t ON t.id_lote = l.id_lote
+         WHERE l.id_lote = ? AND l.id_suministro = ?
+         GROUP BY l.id_lote
+         HAVING saldo > 0`
+      )
+      .get(id_lote, id_suministro)
   }
 
   // Reajuste: ajuste puntual sobre un lote concreto (positivo o negativo).
@@ -226,6 +213,7 @@ export class KardexService {
     }
 
     const numero_kardex = datos.numero_kardex || this._generarNumeroKardex()
+    if (datos.numero_kardex) this._assertKardexLibre(String(datos.numero_kardex).trim())
 
     const info = this.db
       .prepare(

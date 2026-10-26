@@ -32,10 +32,10 @@ export default function Respaldo() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Respaldo de datos</h1>
 
-      <div className="card max-w-2xl bg-base-100 shadow-sm">
+      <div className="card w-full max-w-2xl bg-base-100 shadow-sm">
         <div className="card-body">
           <div className="flex items-center gap-3">
-            <Icon name="respaldo" className="h-8 w-8 text-primary" />
+            <Icon name="respaldo" className="h-8 w-8 shrink-0 text-primary" />
             <h2 className="card-title">Respaldo de la base de datos</h2>
           </div>
           <p>
@@ -44,7 +44,7 @@ export default function Respaldo() {
             consistente y se genera sin cerrar la aplicación.
           </p>
           <div className="card-actions mt-2">
-            <button className="btn btn-primary" onClick={guardar} disabled={enviando}>
+            <button className="btn btn-soft btn-primary" onClick={guardar} disabled={enviando}>
               {enviando && <span className="loading loading-spinner loading-sm" />}
               Guardar respaldo…
             </button>

@@ -3,16 +3,16 @@ import React, { forwardRef } from 'react';
 const Button = forwardRef(({ children, variant = 'primary', size = 'md', isLoading, className = '', ...props }, ref) => {
   const baseClasses = 'btn';
   const variantClasses = {
-    primary: 'btn-primary',
-    secondary: 'btn-secondary',
-    accent: 'btn-accent',
-    ghost: 'btn-ghost',
-    link: 'btn-link',
-    error: 'btn-error',
-    success: 'btn-success',
-    warning: 'btn-warning',
-    info: 'btn-info',
-    outline: 'btn-outline',
+    primary: 'btn-soft btn-primary',
+    secondary: 'btn-soft btn-secondary',
+    accent: 'btn-soft btn-accent',
+    ghost: 'btn-soft btn-neutral',
+    link: 'btn-soft btn-neutral',
+    error: 'btn-soft btn-error',
+    success: 'btn-soft btn-success',
+    warning: 'btn-soft btn-warning',
+    info: 'btn-soft btn-info',
+    outline: 'btn-soft',
   };
   const sizeClasses = {
     xs: 'btn-xs',

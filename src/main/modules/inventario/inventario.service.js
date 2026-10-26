@@ -3,8 +3,6 @@ export class InventarioService {
     this.db = db
   }
 
-  // Saldo físico dinámico: no existe columna estática de saldo.
-  // El saldo se calcula sumando las cantidades del kardex por suministro.
   saldo() {
     return this.db
       .prepare(
@@ -47,7 +45,54 @@ export class InventarioService {
       .all()
   }
 
-  // Lotes con saldo > 0 y vencimiento dentro de "dias" días (por defecto 90).
+  reporteInventario(filtros = {}) {
+    let sql = `
+      SELECT
+        l.id_lote,
+        s.id_suministro,
+        s.codigo_producto,
+        s.descripcion_completa,
+        s.cantidad_unitaria,
+        l.numero_lote,
+        l.fecha_vencimiento,
+        l.precio_unitario,
+        COALESCE(SUM(t.cantidad), 0) AS saldo_lote,
+        COALESCE(NULLIF(s.numero_tarjeta, ''), MAX(t.numero_kardex)) AS numero_kardex
+      FROM inventario_lotes l
+      JOIN cat_suministros s ON s.id_suministro = l.id_suministro
+      LEFT JOIN transacciones_kardex t ON t.id_lote = l.id_lote
+    `
+    const where = []
+    const params = []
+
+    if (filtros.fechaDesde) {
+      where.push(`EXISTS (
+        SELECT 1 FROM transacciones_kardex tk
+        WHERE tk.id_lote = l.id_lote
+        AND DATE(tk.fecha_movimiento) >= ?
+      )`)
+      params.push(filtros.fechaDesde)
+    }
+    if (filtros.fechaHasta) {
+      where.push(`EXISTS (
+        SELECT 1 FROM transacciones_kardex tk
+        WHERE tk.id_lote = l.id_lote
+        AND DATE(tk.fecha_movimiento) <= ?
+      )`)
+      params.push(filtros.fechaHasta)
+    }
+
+    if (where.length) sql += ' WHERE ' + where.join(' AND ')
+
+    sql += `
+      GROUP BY l.id_lote
+      HAVING saldo_lote > 0
+      ORDER BY s.descripcion_completa ASC, l.fecha_vencimiento ASC
+    `
+
+    return this.db.prepare(sql).all(...params)
+  }
+
   proximosVencer(dias = 90) {
     return this.db
       .prepare(

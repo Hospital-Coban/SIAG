@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import Database from 'better-sqlite3'
@@ -8,6 +9,9 @@ import { EntidadesService } from '../src/main/modules/entidades/entidades.servic
 import { InventarioService } from '../src/main/modules/inventario/inventario.service.js'
 import { KardexService } from '../src/main/modules/kardex/kardex.service.js'
 import { DonacionesService } from '../src/main/modules/donaciones/donaciones.service.js'
+import { NotificacionesService } from '../src/main/modules/notificaciones/notificaciones.service.js'
+import { ConfiguracionService } from '../src/main/modules/configuracion/configuracion.service.js'
+import { estadoVencimiento } from '../src/shared/semaforo.js'
 
 let fallos = 0
 function comprobar(cond, msg) {
@@ -19,6 +23,9 @@ function comprobar(cond, msg) {
 }
 
 const rutaDb = path.join(os.tmpdir(), 'inventario_prueba.sqlite')
+for (const sufijo of ['', '-wal', '-shm']) {
+  fs.rmSync(rutaDb + sufijo, { force: true })
+}
 const db = new Database(rutaDb)
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
@@ -30,6 +37,8 @@ const entidades = new EntidadesService(db)
 const inventario = new InventarioService(db)
 const kardex = new KardexService(db)
 const donaciones = new DonacionesService(db)
+const notificaciones = new NotificacionesService(db)
+const configuracion = new ConfiguracionService(db)
 
 console.log('\n1) Esquema + datos de prueba')
 const cat = suministros.listar()
@@ -42,31 +51,55 @@ const saldo = inventario.saldo()
 const suero = saldo.find((s) => s.codigo_producto === 'MED-001')
 comprobar(suero && suero.saldo_total === 150, `saldo de suero = 150 (hay ${suero && suero.saldo_total})`)
 
-console.log('\n3) PEPS: salida de 120 unidades de suero')
+console.log('\n3) Salida con lote obligatorio: 70 unidades del lote L-2025-01')
 const proveedor = ents.find((e) => e.tipo_entidad === 'Proveedor')
+const lotesAntes = inventario.listarLotes(suero.id_suministro)
+const lote1Antes = lotesAntes.find((l) => l.numero_lote === 'L-2025-01')
+let lanzoSinLote = false
+try {
+  kardex.registrarSalida({
+    id_suministro: suero.id_suministro,
+    id_entidad: proveedor.id_entidad,
+    cantidad: 10
+  })
+} catch {
+  lanzoSinLote = true
+}
+comprobar(lanzoSinLote, 'registrarSalida lanza error si no se especifica el lote')
+
 kardex.registrarSalida({
   id_suministro: suero.id_suministro,
+  id_lote: lote1Antes.id_lote,
   id_entidad: proveedor.id_entidad,
-  cantidad: 120
+  cantidad: 70
 })
 const saldoDespues = inventario.saldo().find((s) => s.codigo_producto === 'MED-001')
-comprobar(saldoDespues.saldo_total === 30, `saldo tras salida = 30 (hay ${saldoDespues.saldo_total})`)
+comprobar(saldoDespues.saldo_total === 80, `saldo tras salida = 80 (hay ${saldoDespues.saldo_total})`)
 const lotesSuero = inventario.listarLotes(suero.id_suministro)
-const loteAntes = lotesSuero.find((l) => l.fecha_vencimiento === '2026-01-31')
-const loteDespues = lotesSuero.find((l) => l.fecha_vencimiento === '2026-09-30')
-comprobar(loteAntes.saldo_lote === 0, `lote 2026-01-31 agotado (saldo ${loteAntes.saldo_lote})`)
-comprobar(loteDespues.saldo_lote === 30, `lote 2026-09-30 con saldo 30 (hay ${loteDespues.saldo_lote})`)
+const lote1 = lotesSuero.find((l) => l.numero_lote === 'L-2025-01')
+const lote2 = lotesSuero.find((l) => l.numero_lote === 'L-2025-02')
+comprobar(lote1.saldo_lote === 30, `lote L-2025-01 con saldo 30 (hay ${lote1.saldo_lote})`)
+comprobar(lote2.saldo_lote === 50, `lote L-2025-02 intacto con saldo 50 (hay ${lote2.saldo_lote})`)
 const salidas = kardex.listar({ tipo_movimiento: 'Salida' })
-comprobar(salidas.length === 2, `la salida generó 2 movimientos PEPS (hay ${salidas.length})`)
+comprobar(salidas.length === 1, `la salida generó 1 movimiento (hay ${salidas.length})`)
+comprobar(
+  salidas[0].id_lote === lote1Antes.id_lote && salidas[0].numero_lote === 'L-2025-01',
+  `el movimiento quedó asociado al lote L-2025-01 (quedó ${salidas[0].numero_lote})`
+)
 
-console.log('\n4) Stock insuficiente')
+console.log('\n4) Stock insuficiente en el lote elegido')
 let lanzo = false
 try {
-  kardex.registrarSalida({ id_suministro: suero.id_suministro, id_entidad: proveedor.id_entidad, cantidad: 9999 })
+  kardex.registrarSalida({
+    id_suministro: suero.id_suministro,
+    id_lote: lote1Antes.id_lote,
+    id_entidad: proveedor.id_entidad,
+    cantidad: 9999
+  })
 } catch {
   lanzo = true
 }
-comprobar(lanzo, 'registrarSalida lanza error con stock insuficiente')
+comprobar(lanzo, 'registrarSalida lanza error si el lote no alcanza')
 
 console.log('\n5) Entrada por donación + expediente UCNI')
 const ong = ents.find((e) => e.tipo_entidad === 'ONG')
@@ -103,6 +136,52 @@ const loteJeringa = inventario.listarLotes(jeringa.id_suministro).find((l) => l.
 kardex.registrarReajuste({ id_lote: loteJeringa.id_lote, id_entidad: proveedor.id_entidad, cantidad: -10 })
 const saldoJeringa = inventario.saldo().find((s) => s.codigo_producto === 'MED-002')
 comprobar(saldoJeringa.saldo_total === 240, `jeringa tras donación(50) + reajuste(-10) = 240 (hay ${saldoJeringa.saldo_total})`)
+
+console.log('\n8) Configuración por defecto de notificaciones')
+const cfgNotif = configuracion.obtener('notificaciones_vencimiento')
+comprobar(cfgNotif.valor === '1', `notificaciones_vencimiento activadas por defecto (hay ${cfgNotif.valor})`)
+configuracion.guardar('notificaciones_vencimiento', '0')
+comprobar(
+  configuracion.obtener('notificaciones_vencimiento').valor === '0',
+  'guardar("0") desactiva las notificaciones'
+)
+configuracion.guardar('notificaciones_vencimiento', '1')
+
+console.log('\n9) Notificaciones: cambio de estado de lotes con stock')
+// Primera pasada: todos los lotes se registran sin avisos.
+const primeraPasada = notificaciones.detectarCambios()
+comprobar(primeraPasada.length === 0, `la primera pasada no genera avisos (hay ${primeraPasada.length})`)
+
+// Forzar un cambio: L-2025-01 debe tener un estado distinto al actual.
+const loteNotif = inventario.listarLotes(suero.id_suministro).find((l) => l.numero_lote === 'L-2025-01')
+const estadoActual = estadoVencimiento(loteNotif.fecha_vencimiento)
+const estadoFalso = estadoActual === 'verde' ? 'rojo' : 'verde'
+db.prepare('UPDATE inventario_lotes SET ultimo_estado = ? WHERE id_lote = ?').run(estadoFalso, loteNotif.id_lote)
+
+const cambios = notificaciones.detectarCambios()
+comprobar(cambios.length === 1, `hay 1 cambio de estado (hay ${cambios.length})`)
+comprobar(cambios[0].numero_lote === 'L-2025-01', `el cambio es del lote L-2025-01 (es ${cambios[0] && cambios[0].numero_lote})`)
+comprobar(
+  cambios[0].estado_anterior === estadoFalso && cambios[0].estado_nuevo === estadoActual,
+  `transición ${estadoFalso} → ${estadoActual}`
+)
+
+// Segunda pasada: no debe repetir el aviso.
+const segundaPasada = notificaciones.detectarCambios()
+comprobar(segundaPasada.length === 0, `la segunda pasada no repite avisos (hay ${segundaPasada.length})`)
+
+// Lote agotado: no se toma en cuenta.
+const guantes = saldo.find((s) => s.codigo_producto === 'INS-001')
+const loteGuantes = inventario.listarLotes(guantes.id_suministro).find((l) => l.numero_lote === 'L-GUA-07')
+kardex.registrarReajuste({ id_lote: loteGuantes.id_lote, id_entidad: proveedor.id_entidad, cantidad: -80 })
+const estadoGuantes = estadoVencimiento(loteGuantes.fecha_vencimiento)
+const estadoFalsoGuantes = estadoGuantes === 'verde' ? 'rojo' : 'verde'
+db.prepare('UPDATE inventario_lotes SET ultimo_estado = ? WHERE id_lote = ?').run(estadoFalsoGuantes, loteGuantes.id_lote)
+const cambiosSinStock = notificaciones.detectarCambios()
+comprobar(
+  cambiosSinStock.length === 0 && cambiosSinStock.every((c) => c.id_lote !== loteGuantes.id_lote),
+  'un lote agotado (saldo 0) no genera notificación'
+)
 
 db.close()
 console.log('\n' + (fallos === 0 ? 'RESULTADO: TODAS LAS PRUEBAS PASARON ✔' : `RESULTADO: ${fallos} PRUEBA(S) FALLARON ✘`))

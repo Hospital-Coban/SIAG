@@ -55,7 +55,7 @@ export default function Login({ onLogin }) {
               />
             </label>
             {error && <div className="alert alert-error text-sm">{error}</div>}
-            <button type="submit" className="btn btn-primary w-full" disabled={enviando}>
+            <button type="submit" className="btn btn-soft btn-primary w-full" disabled={enviando}>
               {enviando && <span className="loading loading-spinner loading-sm" />}
               Iniciar sesión
             </button>

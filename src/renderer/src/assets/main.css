@@ -91,5 +91,9 @@
   .btn:not(.btn-outline):not(.btn-link) {
     @apply btn-outline;
   }
+
+  .btn-soft {
+    @apply btn-outline;
+  }
 }
 

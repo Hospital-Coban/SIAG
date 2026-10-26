@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs'
+import { estilizarReporte } from './reporte.estilo.js'
 
 const fechaExcel = (f) => f ? new Date(`${String(f).slice(0, 10)}T00:00:00Z`) : null
 
@@ -45,5 +46,18 @@ export async function generarExcelInventario({ tipo, datos, config = {}, desde =
     if (n > filaCabecera && (tarjeta ? [5, 6, 12] : [7, 8]).includes(col)) cell.numFmt = '"Q" #,##0.00'
   }))
   hoja.pageSetup = { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: `1:${filaCabecera}` }
+  estilizarReporte(hoja, {
+    cabecera: filaCabecera,
+    columnas: encabezados.length,
+    monetarias: tarjeta ? [5, 6, 12] : [7, 8],
+    cantidades: tarjeta ? [4, 9, 10, 11] : [6]
+  })
+  if (tarjeta) {
+    hoja.getColumn(1).width = 15
+    hoja.getColumn(7).width = 15
+    hoja.getColumn(3).width = 35
+    hoja.getColumn(13).width = 45
+    hoja.getRow(4).height = 40
+  }
   return libro.xlsx.writeBuffer()
 }

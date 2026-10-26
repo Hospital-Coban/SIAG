@@ -1,12 +1,11 @@
 import { app, BrowserWindow } from 'electron'
 import { autoUpdater } from 'electron-updater'
 
-// Estado compartido con la UI (Configuración).
 let estado = {
   version_actual: app.getVersion(),
-  estado: 'inactivo', // inactivo | buscando | disponible | descargando | listo | error | no_empaquetada
+  estado: 'inactivo',
   version_nueva: null,
-  progreso: null, // { percent, transferred, total, bytesPerSecond }
+  progreso: null,
   error: null
 }
 
@@ -19,6 +18,17 @@ function emitir() {
 function mover(nuevo) {
   estado = { ...estado, ...nuevo }
   emitir()
+}
+
+function mensajeActualizacion(err) {
+  const texto = String(err?.message || err || '')
+  if (/404|401|releases\.atom|authentication token/i.test(texto)) {
+    return 'No se pudo acceder al servidor de actualizaciones. Verifica que el repositorio y sus releases estén disponibles.'
+  }
+  if (/ENOTFOUND|ECONNREFUSED|network|socket|timeout/i.test(texto)) {
+    return 'No se pudo conectar al servidor de actualizaciones. Revisa tu conexión a internet.'
+  }
+  return 'No se pudo buscar actualizaciones en este momento. Intenta nuevamente más tarde.'
 }
 
 export function estadoActualizacion() {
@@ -64,7 +74,8 @@ function configurar() {
   })
 
   autoUpdater.on('error', (err) => {
-    mover({ estado: 'error', progreso: null, error: String(err?.message || err) })
+    console.error('[actualizaciones] error técnico:', err)
+    mover({ estado: 'error', progreso: null, error: mensajeActualizacion(err) })
   })
 }
 
@@ -81,12 +92,13 @@ export function buscarActualizaciones() {
   }
   // checkForUpdates resuelve; los eventos actualizan el estado.
   autoUpdater.checkForUpdates().catch((err) => {
-    mover({ estado: 'error', error: String(err?.message || err) })
+    console.error('[actualizaciones] error técnico:', err)
+    mover({ estado: 'error', error: mensajeActualizacion(err) })
   })
   return estado
 }
 
 export function instalarActualizacion() {
-  // Cierra la app; autoInstallOnAppQuit se encarga de instalar.
-  app.quit()
+  // Instala al cerrar y vuelve a iniciar la aplicación automáticamente.
+  autoUpdater.quitAndInstall(false, true)
 }

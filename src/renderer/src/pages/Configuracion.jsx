@@ -125,12 +125,12 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Configuración y Ajustes</h1>
+    <div className="space-y-5 sm:space-y-6">
+      <h1 className="text-xl font-bold sm:text-2xl">Configuración y Ajustes</h1>
 
       {/* ── Apariencia ── */}
-      <div className="rounded-box bg-base-100 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold mb-4">Apariencia</h2>
+      <div className="rounded-box bg-base-100 p-4 shadow-sm sm:p-6">
+        <h2 className="mb-4 text-lg font-semibold">Apariencia</h2>
         
         <div className="form-control max-w-sm">
           <label className="label cursor-pointer justify-start gap-4">
@@ -173,7 +173,7 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
       </div>
 
       {/* ── Notificaciones ── */}
-      <div className="rounded-box bg-base-100 p-6 shadow-sm">
+      <div className="rounded-box bg-base-100 p-4 shadow-sm sm:p-6">
         <div className="flex items-center gap-3 mb-2">
           <Icon name="campana" className="h-7 w-7 shrink-0 text-primary" />
           <h2 className="text-lg font-semibold">Notificaciones del semáforo</h2>
@@ -197,8 +197,8 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
             Vence en menos de 180 días (incluye vencidos)
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
-          <label className="label cursor-pointer gap-3">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:flex-wrap sm:items-center">
+          <label className="label min-w-0 cursor-pointer gap-3">
             <input
               type="checkbox"
               className="toggle toggle-primary"
@@ -220,8 +220,8 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
       </div>
 
       {/* ── Actualizaciones ── */}
-      <div className="rounded-box bg-base-100 p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="rounded-box bg-base-100 p-4 shadow-sm sm:p-6">
+        <div className="mb-2 flex items-start gap-3">
           <Icon name="descargar" className="h-7 w-7 shrink-0 text-primary" />
           <h2 className="text-lg font-semibold">Actualizaciones</h2>
         </div>
@@ -272,9 +272,9 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
             </div>
           )}
 
-          <div className="flex flex-wrap gap-3">
+           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
-               className="btn btn-outline btn-primary btn-sm"
+               className="btn btn-outline btn-primary btn-sm w-full sm:w-auto"
               onClick={buscarActualizacion}
               disabled={buscandoActualizacion || actualizacion?.estado === 'buscando' || actualizacion?.estado === 'descargando'}
             >
@@ -284,7 +284,7 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
               Buscar actualizaciones
             </button>
             {actualizacion?.estado === 'listo' && (
-               <button className="btn btn-outline btn-success btn-sm" onClick={instalarActualizacion}>
+                <button className="btn btn-outline btn-success btn-sm w-full sm:w-auto" onClick={instalarActualizacion}>
                 Reiniciar para aplicar
               </button>
             )}
@@ -302,8 +302,8 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
       </div>
 
       {/* ── Respaldo ── */}
-      <div className="rounded-box bg-base-100 p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="rounded-box bg-base-100 p-4 shadow-sm sm:p-6">
+        <div className="mb-2 flex items-start gap-3">
           <Icon name="respaldo" className="h-7 w-7 shrink-0 text-primary" />
           <h2 className="text-lg font-semibold">Respaldo de la base de datos</h2>
         </div>
@@ -312,7 +312,7 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
           otra ubicación física para respaldar la contabilidad del inventario. El respaldo es
           consistente y se genera sin cerrar la aplicación.
         </p>
-        <button className="btn btn-outline btn-primary" onClick={guardarRespaldo} disabled={enviando}>
+        <button className="btn btn-outline btn-primary w-full sm:w-auto" onClick={guardarRespaldo} disabled={enviando}>
           {enviando && <span className="loading loading-spinner loading-sm" />}
           Guardar respaldo…
         </button>
@@ -326,9 +326,9 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
       </div>
 
       {/* ── Información ── */}
-      <div className="rounded-box bg-base-100 p-6 shadow-sm">
+      <div className="rounded-box bg-base-100 p-4 shadow-sm sm:p-6">
         <h2 className="text-lg font-semibold mb-4">Información de la Aplicación</h2>
-        <table className="table table-sm max-w-md">
+        <div className="w-full overflow-x-auto"><table className="table table-sm w-full max-w-md">
           <tbody>
             <tr>
               <td className="opacity-70">Nombre</td>
@@ -338,12 +338,8 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
               <td className="opacity-70">Versión</td>
               <td className="font-mono">{actualizacion?.version_actual || 'v0.1.0'}</td>
             </tr>
-            <tr>
-              <td className="opacity-70">Desarrollador</td>
-              <td>Ministerio de Salud Pública y Asistencia Social (MSPAS) / Hospital</td>
-            </tr>
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <Toast mensaje={toast?.mensaje} tipo={toast?.tipo} onCerrar={cerrarToast} />

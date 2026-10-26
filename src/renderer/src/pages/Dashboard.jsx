@@ -238,7 +238,7 @@ export default function Dashboard() {
           </label>
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className="btn btn-outline btn-primary btn-sm"
             onClick={aplicarFiltros}
           >
             Consultar

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ExcelJS from 'exceljs'
+import { estilizarReporte } from '../../../shared/reporte.estilo.js'
 import { CAMPOS_DONACION } from '../../../shared/donaciones.js'
 import { formatearFecha, formatearNumero } from '../lib/util.js'
 import SelectBuscador from '../components/SelectBuscador.jsx'
@@ -84,7 +85,7 @@ export default function Donaciones() {
       const columnas = [['numero', 'No.', 'number'], ...CAMPOS_DONACION]
       hoja.columns = columnas.map(([key, header, tipo]) => ({ key, header, width: key === 'descripcion_completa' ? 48 : tipo === 'date' ? 22 : 28 }))
       hoja.addTable({
-        name: 'TablaDonaciones', ref: 'A1', headerRow: true,
+        name: 'TablaDonaciones', ref: 'A5', headerRow: true,
         style: { theme: 'TableStyleMedium2', showRowStripes: true },
         columns: columnas.map(([, name]) => ({ name, filterButton: true })),
         rows: filtradas.map((f, i) => columnas.map(([k, , tipo]) => {
@@ -109,6 +110,21 @@ export default function Donaciones() {
           if (tipo === 'money' || tipo === 'total') cell.numFmt = '"Q" #,##0.00'
         }
       }))
+      // Reemplaza el encabezado inicial de columns por una portada compacta.
+      for (let n = 1; n <= 4; n++) {
+        hoja.getRow(n).eachCell((c) => { c.value = null })
+        hoja.mergeCells(n, 1, n, columnas.length)
+      }
+      hoja.getCell('A1').value = 'SIAG ALMACÉN'
+      hoja.getCell('A2').value = 'REPORTE DE DONACIONES'
+      hoja.getCell('A3').value = `Entrega: ${desde || 'Sin fecha inicial'} a ${hasta || 'Sin fecha final'} · Donante: ${ongs.find((o) => String(o.id_ong) === String(donante))?.nombre || 'Todos'} `
+      hoja.getCell('A4').value = `${filtradas.length} expedientes · Monto total: Q ${filtradas.reduce((s, f) => s + total(f), 0).toFixed(2)}`
+      estilizarReporte(hoja, {
+        cabecera: 5, columnas: columnas.length,
+        monetarias: columnas.flatMap(([, , tipo], i) => ['money', 'total'].includes(tipo) ? [i + 1] : []),
+        cantidades: columnas.flatMap(([, , tipo], i) => tipo === 'number' ? [i + 1] : [])
+      })
+      hoja.getColumn(1).width = 8
       const res = await window.api.donaciones.exportarExcel(await libro.xlsx.writeBuffer(), `donaciones_${new Date().toISOString().slice(0, 10)}.xlsx`)
       if (!res.ok) throw new Error(res.error)
       if (!res.data?.cancelado) mostrarToast('Excel exportado correctamente')
@@ -122,13 +138,13 @@ export default function Donaciones() {
     <div className="flex flex-wrap justify-between gap-3">
       <h1 className="text-2xl font-bold">Expedientes de donación</h1>
       <div className="grid w-full gap-2 sm:flex sm:w-auto">
-        <button className="btn btn-outline btn-secondary w-full sm:w-auto" disabled={ocupado || !filtradas.length} onClick={exportar}>Exportar Excel</button>
+        <button className="btn btn-outline btn-success w-full sm:w-auto" disabled={ocupado || !filtradas.length} onClick={exportar}>Exportar Excel</button>
         <button className="btn btn-outline btn-primary w-full sm:w-auto" onClick={() => setForm(inicial())}>Registrar donación</button>
       </div>
     </div>
     <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <label className="form-control min-w-0"><span className="label-text">Buscar</span><input className="input input-bordered input-sm w-full" type="search" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Expediente, descripción, UCNI…" /></label>
-      <div className="form-control w-full sm:w-64"><span className="label-text">Donante</span><SelectBuscador size="sm" opciones={opcionesDonantes} valor={donante} onChange={setDonante} placeholder="Todos los donantes" /></div>
+      <div className="form-control min-w-0 w-full"><span className="label-text">Donante</span><SelectBuscador size="sm" opciones={opcionesDonantes} valor={donante} onChange={setDonante} placeholder="Todos los donantes" /></div>
       <label className="form-control min-w-0"><span className="label-text">Entrega desde</span><input className="input input-bordered input-sm w-full" type="date" value={desde} max={hasta || undefined} onChange={(e) => setDesde(e.target.value)} /></label>
       <label className="form-control min-w-0"><span className="label-text">Entrega hasta</span><input className="input input-bordered input-sm w-full" type="date" value={hasta} min={desde || undefined} onChange={(e) => setHasta(e.target.value)} /></label>
       <button className="btn btn-ghost btn-sm w-full lg:w-auto" onClick={() => { setBusqueda(''); setDonante(''); setDesde(''); setHasta('') }}>Limpiar filtros</button>

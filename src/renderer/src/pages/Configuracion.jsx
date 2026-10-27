@@ -124,6 +124,19 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
     }
   }
 
+  const restaurarRespaldo = async () => {
+    if (!window.confirm('La base actual se respaldará y la aplicación se reiniciará. ¿Continuar?')) return
+    setEnviando(true)
+    try {
+      const res = await window.api.backup.restaurar()
+      if (!res.ok) mostrarToast(res.error, 'error')
+      else if (res.data.cancelado) mostrarToast('Restauración cancelada', 'error')
+      else mostrarToast('Respaldo restaurado. La aplicación se reiniciará.')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   return (
     <div className="space-y-5 sm:space-y-6">
       <h1 className="text-xl font-bold sm:text-2xl">Configuración y Ajustes</h1>
@@ -315,6 +328,9 @@ export default function Configuracion({ temaActual, setTemaGlobal }) {
         <button className="btn btn-outline btn-primary w-full sm:w-auto" onClick={guardarRespaldo} disabled={enviando}>
           {enviando && <span className="loading loading-spinner loading-sm" />}
           Guardar respaldo…
+        </button>
+        <button className="btn btn-outline btn-warning mt-2 w-full sm:ml-2 sm:mt-0 sm:w-auto" onClick={restaurarRespaldo} disabled={enviando}>
+          Restaurar respaldo…
         </button>
         {ruta && (
           <div className="alert alert-success mt-3">

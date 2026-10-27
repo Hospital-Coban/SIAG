@@ -38,6 +38,7 @@ export const CANALES = {
   DONACIONES_EXPORTAR_EXCEL: 'donaciones:exportar-excel',
 
   BACKUP_GUARDAR: 'backup:guardar',
+  BACKUP_RESTAURAR: 'backup:restaurar',
 
   CONFIG_OBTENER: 'config:obtener',
   CONFIG_GUARDAR: 'config:guardar',

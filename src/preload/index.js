@@ -53,7 +53,8 @@ inventario: {
     logout: invocar(CANALES.AUTH_LOGOUT)
   },
   backup: {
-    guardar: invocar(CANALES.BACKUP_GUARDAR)
+    guardar: invocar(CANALES.BACKUP_GUARDAR),
+    restaurar: invocar(CANALES.BACKUP_RESTAURAR)
   },
   config: {
     obtener: invocar(CANALES.CONFIG_OBTENER),

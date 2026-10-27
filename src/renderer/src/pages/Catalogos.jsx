@@ -240,7 +240,8 @@ export default function Catalogos({ tipo }) {
           </div>
           <div className="p-4">
             <div className="max-h-[60vh] overflow-auto">
-              <table className="table table-sm table-zebra">
+              <table className="table table-sm table-zebra w-full table-fixed">
+                <colgroup><col className="w-[18%]" /><col className="w-[48%]" /><col className="w-[18%]" /><col className="w-[16%]" /></colgroup>
                 <thead className="sticky top-0 bg-base-200">
                   <tr>
                     <th>Código</th>
@@ -261,7 +262,7 @@ export default function Catalogos({ tipo }) {
                     <tr key={s.id_suministro}>
                       <td className="whitespace-nowrap font-mono">{s.codigo_producto}</td>
                       <td>
-                        <div className="max-w-[60vw] sm:max-w-xs" title={s.descripcion_completa}>
+                        <div className="break-words" title={s.descripcion_completa}>
                           {s.descripcion_completa}
                         </div>
                       </td>

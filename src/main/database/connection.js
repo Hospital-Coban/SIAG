@@ -3,7 +3,6 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { app } from 'electron'
 import { initSchema } from './schema.js'
-import { seedDemo } from './seed.js'
 
 let db = null
 
@@ -24,7 +23,5 @@ export function initDb() {
   db.pragma('synchronous = NORMAL')
 
   initSchema(db)
-  seedDemo(db)
-
   return db
 }
